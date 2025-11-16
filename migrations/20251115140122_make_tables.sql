@@ -14,7 +14,7 @@ CREATE TABLE users (
 CREATE TABLE pull_requests (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    author_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
     status TEXT NOT NULL CHECK (status IN ('OPEN','MERGED')) DEFAULT 'OPEN',
 

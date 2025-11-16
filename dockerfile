@@ -16,14 +16,11 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Устанавливаем goose
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
-# Приложение
 COPY --from=builder /app/pr-service .
 COPY --from=builder /app/migrations ./migrations
 
 ENV DATABASE_URL=postgres://postgres:postgres@db:5432/pr_service?sslmode=disable
 
-# ВАЖНО — shell команда, чтобы работали переменные и &&
 ENTRYPOINT ["/bin/sh", "-c", "goose -dir ./migrations postgres \"$DATABASE_URL\" up && ./pr-service"]
