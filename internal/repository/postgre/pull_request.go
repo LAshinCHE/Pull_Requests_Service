@@ -150,7 +150,7 @@ func (r *PullRequestRepo) Reassign(ctx context.Context, prID string, oldUserID s
 	}
 
 	rows, err := tx.Query(ctx, `
-        SELECT user_id
+        SELECT id
         FROM users
         WHERE team_name = $1
           AND is_active = TRUE
@@ -231,10 +231,10 @@ func (r *PullRequestRepo) GetByReviewer(ctx context.Context, reviewerID string) 
 
 func (r *PullRequestRepo) GetAuthorTeamMembers(ctx context.Context, authorID string) ([]string, error) {
 	const q = `
-        SELECT tm.user_id
+        SELECT tm.id
         FROM user_teams ut
         JOIN team_members tm ON tm.team_id = ut.team_id
-        WHERE ut.user_id = $1 AND tm.user_id != $1
+        WHERE ut.id = $1 AND tm.user_id != $1
     `
 	rows, err := r.pool.Query(ctx, q, authorID)
 	if err != nil {

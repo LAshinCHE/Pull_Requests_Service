@@ -32,7 +32,7 @@ func (r *UserRepo) Exists(ctx context.Context, userID string) (bool, error) {
 func (r *UserRepo) CreateOrUpdate(ctx context.Context, user *models.User) error {
 
 	_, err := r.pool.Exec(ctx, `
-        INSERT INTO users (user_id, username, team_name, is_active)
+        INSERT INTO users (id, username, team_name, is_active)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (user_id)
         DO UPDATE SET

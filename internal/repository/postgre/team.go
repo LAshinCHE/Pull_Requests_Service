@@ -29,17 +29,55 @@ func (r *TeamRepo) Exists(ctx context.Context, teamID string) (bool, error) {
 }
 
 func (r *TeamRepo) Create(ctx context.Context, team *models.Team) error {
-	_, err := r.pool.Exec(ctx, `
-        INSERT INTO teams (team_name)
-        VALUES ($1)
-        ON CONFLICT (team_name) DO NOTHING
-    `, team.TeamName)
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
+	var exists bool
+	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM teams WHERE team_name = $1)`, team.TeamName).
+		Scan(&exists)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return domain.ErrNotFound
+	}
+
+	_, err = tx.Exec(ctx, `
+    INSERT INTO teams (team_name) VALUES ($1)
+    ON CONFLICT (team_name) DO NOTHING
+  `, team.TeamName)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	for _, m := range team.Members {
+		_, err = tx.Exec(ctx, `
+      INSERT INTO users (id, username, team_name, is_active)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (id) DO UPDATE SET
+        username = EXCLUDED.username,
+        team_name = EXCLUDED.team_name,
+        is_active = EXCLUDED.is_active
+    `, m.UserID, m.Username, team.TeamName, m.IsActive)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(ctx, `
+      INSERT INTO team_members (team_name, id, is_active)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (team_name, id) DO UPDATE SET
+        is_active = EXCLUDED.is_active
+    `, team.TeamName, m.UserID, m.IsActive)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *TeamRepo) GetByName(ctx context.Context, teamName string) (*models.Team, error) {
@@ -55,7 +93,7 @@ func (r *TeamRepo) GetByName(ctx context.Context, teamName string) (*models.Team
 	}
 
 	rows, err := r.pool.Query(ctx, `
-        SELECT user_id
+        SELECT id
         FROM team_members
         WHERE team_name = $1
     `, teamName)
@@ -113,7 +151,7 @@ func (r *TeamRepo) ReplaceMembers(
 
 	for _, m := range members {
 		_, err = tx.Exec(ctx, `
-            INSERT INTO team_members (team_name, user_id)
+            INSERT INTO team_members (team_name, id)
             VALUES ($1, $2)
         `, teamName, m.UserID)
 		if err != nil {
