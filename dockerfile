@@ -7,21 +7,23 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o pr-service ./cmd/server
+RUN go build -o pr-service ./cmd
 
 RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 
-FROM golang:1
+
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
-COPY --from=builder /app/pr-service .
+# Устанавливаем goose
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
+# Приложение
+COPY --from=builder /app/pr-service .
 COPY --from=builder /app/migrations ./migrations
 
 ENV DATABASE_URL=postgres://postgres:postgres@db:5432/pr_service?sslmode=disable
-ENV GOOSE_DRIVER=postgres
-ENV GOOSE_DBSTRING=$DATABASE_URL
 
-ENTRYPOINT goose -dir ./migrations postgres "$DATABASE_URL" up && ./pr-service
+# ВАЖНО — shell команда, чтобы работали переменные и &&
+ENTRYPOINT ["/bin/sh", "-c", "goose -dir ./migrations postgres \"$DATABASE_URL\" up && ./pr-service"]

@@ -20,27 +20,44 @@ func NewPullRequest(pr repository.PullRequest, user repository.User) *PullReques
 	}
 }
 
-func (p *PullRequest) Create(ctx context.Context, pr *models.PullRequest) error {
-	exist, err := p.prRepo.Exists(ctx, pr.PullRequestID)
+func (p *PullRequest) GetPRsByReviewer(ctx context.Context, userID string) ([]models.PullRequestShort, error) {
+	return p.prRepo.GetByReviewer(ctx, userID)
+}
+
+func (p *PullRequest) Create(ctx context.Context, prID string, prName string, authorID string) (*models.PullRequest, error) {
+
+	_, err := p.prRepo.Get(ctx, prID)
+	if err == nil {
+		return nil, domain.ErrPRExists
+	}
+
+	reviewers, err := p.prRepo.GetAuthorTeamMembers(ctx, authorID)
 	if err != nil {
-		return err
+		return nil, domain.ErrNotFound
+	}
+	if len(reviewers) == 0 {
+		return nil, domain.ErrNotFound
 	}
 
-	if !exist {
-		return domain.ErrPRExists
+	assigned := reviewers
+	if len(assigned) > 2 {
+		assigned = assigned[:2]
 	}
 
-	exist = p.userRepo.Exists(ctx, pr.AuthorID)
-	if !exist {
-		return domain.ErrNotFound
+	pr := &models.PullRequest{
+		PullRequestID:     prID,
+		PullRequestName:   prName,
+		AuthorID:          authorID,
+		Status:            "OPEN",
+		AssignedReviewers: assigned,
 	}
 
-	for _, temate := range pr.AssignedReviewers {
-		if exist = p.userRepo.Exists(ctx, temate); !exist {
-			return domain.ErrNotFound
-		}
+	err = p.prRepo.Create(ctx, pr)
+	if err != nil {
+		return nil, err
 	}
-	return p.Create(ctx, pr)
+
+	return pr, nil
 }
 
 func (p *PullRequest) Merge(ctx context.Context, prID string) (*models.PullRequest, error) {

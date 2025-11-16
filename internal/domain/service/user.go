@@ -18,12 +18,15 @@ func NewUser(repo repository.User) *User {
 }
 
 func (u *User) SetUserActive(ctx context.Context, userID string, isActive bool) (*models.User, error) {
-	exitst := u.userRepo.Exists(ctx, userID)
+	exitst, err := u.userRepo.Exists(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	if !exitst {
 		return nil, domain.ErrNotFound
 	}
 
-	err := u.userRepo.SetActive(ctx, userID, isActive)
+	err = u.userRepo.SetActive(ctx, userID, isActive)
 	if err != nil {
 		return nil, err
 	}

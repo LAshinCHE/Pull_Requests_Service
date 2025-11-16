@@ -19,7 +19,6 @@ type ServiceUser interface {
 type ServicePullRequest interface {
 	Create(ctx context.Context, prID string, prName string, authorID string) (*models.PullRequest, error)
 	Merge(ctx context.Context, prID string) (*models.PullRequest, error)
-	Get(ctx context.Context, prID string) (*models.PullRequest, error)
-	GetPRsByReviewer(ctx context.Context, userID string) ([]models.PullRequest, error)
+	GetPRsByReviewer(ctx context.Context, userID string) ([]models.PullRequestShort, error)
 	Reassign(ctx context.Context, prID string, oldReviewerID string) (*models.PullRequest, string, error)
 }

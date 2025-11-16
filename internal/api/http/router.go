@@ -2,7 +2,7 @@ package http
 
 import "github.com/gorilla/mux"
 
-func NewRouter(h *HTTPHandler) *mux.Router {
+func newRouter(h *HTTPHandler) *mux.Router {
 	r := mux.NewRouter()
 
 	// Team

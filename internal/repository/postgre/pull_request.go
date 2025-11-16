@@ -17,11 +17,11 @@ type PullRequestRepo struct {
 	pool *pgxpool.Pool
 }
 
-func New(pool *pgxpool.Pool) *PullRequestRepo {
+func NewPullRequestRepo(pool *pgxpool.Pool) *PullRequestRepo {
 	return &PullRequestRepo{pool: pool}
 }
 
-func (r *PullRequestRepo) GetByID(ctx context.Context, id string) (models.PullRequest, error) {
+func (r *PullRequestRepo) Get(ctx context.Context, id string) (*models.PullRequest, error) {
 	var pr models.PullRequest
 
 	err := r.pool.QueryRow(ctx, `
@@ -37,14 +37,14 @@ func (r *PullRequestRepo) GetByID(ctx context.Context, id string) (models.PullRe
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return models.PullRequest{}, domain.ErrNotFound
+			return nil, domain.ErrNotFound
 		}
-		return models.PullRequest{}, err
+		return nil, err
 	}
-	return pr, nil
+	return &pr, nil
 }
 
-func (r *PullRequestRepo) Create(ctx context.Context, pr models.PullRequest) error {
+func (r *PullRequestRepo) Create(ctx context.Context, pr *models.PullRequest) error {
 	_, err := r.pool.Exec(ctx, `
         INSERT INTO pull_requests (id, name, author_id, status, assigned_reviewers)
         VALUES ($1, $2, $3, $4, $5)
@@ -227,4 +227,26 @@ func (r *PullRequestRepo) GetByReviewer(ctx context.Context, reviewerID string) 
 	}
 
 	return list, nil
+}
+
+func (r *PullRequestRepo) GetAuthorTeamMembers(ctx context.Context, authorID string) ([]string, error) {
+	const q = `
+        SELECT tm.user_id
+        FROM user_teams ut
+        JOIN team_members tm ON tm.team_id = ut.team_id
+        WHERE ut.user_id = $1 AND tm.user_id != $1
+    `
+	rows, err := r.pool.Query(ctx, q, authorID)
+	if err != nil {
+		return nil, err
+	}
+
+	reviewers := []string{}
+	for rows.Next() {
+		var uid string
+		rows.Scan(&uid)
+		reviewers = append(reviewers, uid)
+	}
+
+	return reviewers, nil
 }

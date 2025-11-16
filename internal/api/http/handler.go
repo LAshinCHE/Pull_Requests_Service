@@ -20,7 +20,7 @@ func RunService(
 		PullRequest: pullRequest,
 	}
 
-	r := NewRouter(handler)
+	r := newRouter(handler)
 
 	server := &http.Server{
 		Addr:    ":8080",

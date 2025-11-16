@@ -7,7 +7,7 @@ import (
 )
 
 type User interface {
-	Exists(ctx context.Context, userID string) bool
+	Exists(ctx context.Context, userID string) (bool, error)
 	CreateOrUpdate(ctx context.Context, user *models.User) error
 	GetByID(ctx context.Context, userID string) (*models.User, error)
 	SetActive(ctx context.Context, userID string, isActive bool) error
@@ -27,11 +27,7 @@ type PullRequest interface {
 	Exists(ctx context.Context, prID string) (bool, error)
 	Get(ctx context.Context, prID string) (*models.PullRequest, error)
 	SetMerged(ctx context.Context, prID string, mergedAt *time.Time) error
-
-	// UpdateReviewers(ctx context.Context, prID string, reviewers []string) error
-
+	GetAuthorTeamMembers(ctx context.Context, authorID string) ([]string, error)
 	Reassign(ctx context.Context, prID string, oldUserID string) (*models.PullRequest, string, error)
-
-	// для /users/getReview
 	GetByReviewer(ctx context.Context, reviewerID string) ([]models.PullRequestShort, error)
 }

@@ -2,13 +2,12 @@ package internal
 
 import (
 	"context"
-	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgreSQL() (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+func NewPostgreSQL(dburl string) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(context.Background(), dburl)
 	if err != nil {
 		return nil, err
 	}
