@@ -9,7 +9,7 @@ import (
 
 type addTeamRequest struct {
 	TeamName string `json:"team_name"`
-	Members  []models.TeamMemberInput
+	Members  []models.TeamMember
 }
 
 func (h *HTTPHandler) AddTeam(w http.ResponseWriter, r *http.Request) {
